@@ -1,0 +1,3 @@
+[submodule "regreg"]
+	path = regreg
+	url = https://github.com/regreg/regreg.git
