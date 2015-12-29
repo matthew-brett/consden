@@ -52,6 +52,30 @@ def t1_basis(volume_times, t1):
     return np.where(times_since < 0, 0, np.e ** (-times_since / t1))
 
 
+def drop_colin(design, tol=np.finfo(float).eps):
+    """ Drop colinear columns fron 2D array `design`
+
+    Parameters
+    ----------
+    design : 2D array-like
+    tol : float
+        Columns declared colinear if abs of cosine between two columns is
+        between ``(1 - tol, 1 + tol)``.
+
+    Returns
+    -------
+    reduced : 2D array-like
+        `design` with colinear columns dropped.  If columns ``i`` and ``j`` are
+        colinear, we drop column ``j`` if j > i.
+    """
+    design = np.array(design)
+    normed = design / np.sqrt(np.sum(design ** 2, axis=0))
+    cosines = normed.T.dot(normed)
+    colinear = np.abs((np.abs(cosines) - 1)) < tol
+    colin_cols = np.any(np.triu(colinear, 1), axis=0)
+    return design[:, ~colin_cols]
+
+
 def openfmri2nipy(fname):
     """ Return contents of OpenFMRI stimulus `fname` as nipy recarray
     """
