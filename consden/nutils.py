@@ -85,12 +85,13 @@ def drop_colin(design, tol=None):
     return design[:, ~colin_cols]
 
 
-def dct_ii_basis(volume_times, order=None):
+def dct_ii_basis(volume_times, order=None, normcols=False):
     """ DCT II basis up to order `order`
 
     See: https://en.wikipedia.org/wiki/Discrete_cosine_transform#DCT-II
 
-    Basis not normalized to length 1, and therefore, basis is not orthogonal.
+    By default, basis not normalized to length 1, and therefore, basis is not
+    orthogonal.  Normalize basis with `normcols` keyword argument.
 
     Parameters
     ----------
@@ -99,6 +100,9 @@ def dct_ii_basis(volume_times, order=None):
         otherwise we raise an error.
     order : int, optional
         Order of DCT-II basis
+    normcols : bool, optional
+        If True, normalize columns to length 1, so return orthogonal
+        `dct_basis`.
 
     Returns
     -------
@@ -116,6 +120,10 @@ def dct_ii_basis(volume_times, order=None):
     dct_basis = np.zeros((N, order))
     for k in range(0, order):
         dct_basis[:, k] = np.cos(cycle * k)
+    if normcols:  # Set column lengths to 1
+        lengths = np.ones(order) * np.sqrt(N / 2.)
+        lengths[0:1] = np.sqrt(N)  # Allow order=0
+        dct_basis /= lengths
     return dct_basis
 
 

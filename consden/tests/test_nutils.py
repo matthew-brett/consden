@@ -113,6 +113,12 @@ def test_dct_ii_basis():
                             np.diag(sq_col_lengths))
         col_lengths = np.sqrt(sq_col_lengths)
         assert_almost_equal(our_dct / col_lengths, spm_mtx)
+        # Normalize length
+        our_normed_dct = dct_ii_basis(vol_times, normcols=True)
+        assert_almost_equal(our_normed_dct, spm_mtx)
+        assert_almost_equal(our_normed_dct.T.dot(our_normed_dct), np.eye(N))
         for i in range(N):
             assert_almost_equal(dct_ii_basis(vol_times, i) / col_lengths[:i],
+                                spm_mtx[:, :i])
+            assert_almost_equal(dct_ii_basis(vol_times, i, True),
                                 spm_mtx[:, :i])
