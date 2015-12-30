@@ -9,6 +9,8 @@ from nipy.modalities.fmri.design import natural_spline
 from nipy.algorithms.statistics.formula.formulae import make_recarray
 from nipy.modalities.fmri.design_matrix import DesignMatrix
 
+EPS = np.finfo(float).eps
+
 
 def spline_basis(volume_times, order=3):
     """ Return spline drift basis, with knots in time center
@@ -52,13 +54,13 @@ def t1_basis(volume_times, t1):
     return np.where(times_since < 0, 0, np.e ** (-times_since / t1))
 
 
-def drop_colin(design, tol=np.finfo(float).eps):
+def drop_colin(design, tol=None):
     """ Drop colinear columns fron 2D array `design`
 
     Parameters
     ----------
     design : 2D array-like
-    tol : float
+    tol : None or float, optional
         Columns declared colinear if abs of cosine between two columns is
         between ``(1 - tol, 1 + tol)``.
 
@@ -70,6 +72,8 @@ def drop_colin(design, tol=np.finfo(float).eps):
     """
     design = np.array(design)
     normed = design / np.sqrt(np.sum(design ** 2, axis=0))
+    if tol is None:
+        tol = np.finfo(normed.dtype).eps * design.shape[0]
     cosines = normed.T.dot(normed)
     colinear = np.abs((np.abs(cosines) - 1)) < tol
     colin_cols = np.any(np.triu(colinear, 1), axis=0)

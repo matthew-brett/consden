@@ -52,22 +52,44 @@ def test_t1_basis():
 
 
 def test_drop_colin():
-    eyes = np.eye(5)
-    assert_array_equal(drop_colin(eyes), eyes)
-    # Dependent columns don't get dropped only columns colinear with other
-    # columns in the design
-    eyes_1 = np.c_[eyes, np.ones(5)]
-    assert_array_equal(drop_colin(eyes_1), eyes_1)
-    # Colinear columns get dropped
-    eyes_eyes = np.c_[eyes, np.eye(5)[:, :2]]
-    assert_array_equal(drop_colin(eyes_eyes), eyes)
-    eyes_eyes_2 = np.c_[np.eye(5)[:, :2], eyes]
-    assert_array_equal(drop_colin(eyes_eyes_2), eyes)
-    # Test normalization
-    eyes_eyes_3 = np.c_[eyes * 4, np.eye(5)[:, :2]]
-    assert_array_equal(drop_colin(eyes_eyes_3), eyes * 4)
-    # Negative colinear
-    eyes_eyes_m1 = np.c_[eyes, np.eye(5)[:, :2] * -1]
-    assert_array_equal(drop_colin(eyes_eyes_m1), eyes)
-    # Can use list
-    assert_array_equal(drop_colin(eyes_eyes.tolist()), eyes)
+
+    def normed_1(delta, n):
+        # A normalized vector with 1+delta as first element, 0 else
+        vec = np.zeros(n)
+        vec[0] = 1 + delta
+        vec[1] = -np.sqrt(2 * delta + delta ** 2)
+        return vec
+
+    for N in (5, 100):
+        eyes = np.eye(N)
+        assert_array_equal(drop_colin(eyes), eyes)
+        # Dependent columns don't get dropped only columns colinear with other
+        # columns in the design
+        eyes_1 = np.c_[eyes, np.ones(N)]
+        assert_array_equal(drop_colin(eyes_1), eyes_1)
+        # Colinear columns get dropped
+        eyes_eyes = np.c_[eyes, np.eye(N)[:, :2]]
+        assert_array_equal(drop_colin(eyes_eyes), eyes)
+        eyes_eyes_2 = np.c_[np.eye(N)[:, :2], eyes]
+        assert_array_equal(drop_colin(eyes_eyes_2), eyes)
+        # Test normalization
+        eyes_eyes_3 = np.c_[eyes * 4, np.eye(N)[:, :2]]
+        assert_array_equal(drop_colin(eyes_eyes_3), eyes * 4)
+        # Negative colinear
+        eyes_eyes_m1 = np.c_[eyes, np.eye(N)[:, :2] * -1]
+        assert_array_equal(drop_colin(eyes_eyes_m1), eyes)
+        # Can use list
+        assert_array_equal(drop_colin(eyes_eyes.tolist()), eyes)
+        # Tolerance
+        eps = np.finfo(float).eps
+        # Delta below threshold
+        small_eyes = np.c_[eyes, normed_1(eps * (N - 1), N)]
+        assert_array_equal(drop_colin(small_eyes), eyes)
+        # Delta above threshold
+        small_eyes = np.c_[eyes, normed_1(eps * (N + 1), N)]
+        assert_array_equal(drop_colin(small_eyes), small_eyes)
+        # Change threshold
+        tol = eps * (N + 2)
+        assert_array_equal(drop_colin(small_eyes, tol=tol), eyes)
+        small_eyes = np.c_[eyes, normed_1(eps * (N + 3), N)]
+        assert_array_equal(drop_colin(small_eyes, tol=tol), small_eyes)
