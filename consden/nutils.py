@@ -2,6 +2,7 @@
 """
 
 import numpy as np
+import numpy.linalg as npl
 
 from scipy.linalg import toeplitz
 
@@ -59,12 +60,21 @@ def t1_basis(volume_times, t1):
     return np.where(times_since < 0, 0, np.e ** (-times_since / t1))
 
 
-def drop_colin(design, tol=None):
-    """ Drop colinear columns fron 2D array `design`
+def _norm_cols(x):
+    x = np.asarray(x)
+    return x / npl.norm(x, axis=0)
+
+
+def drop_colin(design, ref_design=None, tol=None):
+    """ Drop colinear columns from 2D array `design`
 
     Parameters
     ----------
     design : 2D array-like
+        Array with columns that may be removed because of colinearity.
+    ref_design : None or 2D array-like, optional
+        Array containing columns for which we will check colinearity against
+        the columns of `design`.  Default of None corresponds to `design`.
     tol : None or float, optional
         Columns declared colinear if abs of cosine between two columns is
         between ``(1 - tol, 1 + tol)``.
@@ -76,12 +86,16 @@ def drop_colin(design, tol=None):
         colinear, we drop column ``j`` if j > i.
     """
     design = np.array(design)
-    normed = design / np.sqrt(np.sum(design ** 2, axis=0))
+    normed = _norm_cols(design)
+    against_self = ref_design is None
+    ref_normed = normed if against_self else _norm_cols(ref_design)
     if tol is None:
         tol = np.finfo(normed.dtype).eps * design.shape[0]
-    cosines = normed.T.dot(normed)
+    cosines = ref_normed.T.dot(normed)
     colinear = np.abs((np.abs(cosines) - 1)) < tol
-    colin_cols = np.any(np.triu(colinear, 1), axis=0)
+    if against_self:  # Ignore colinearity of column with self
+        colinear = np.triu(colinear, 1)
+    colin_cols = np.any(colinear, axis=0)
     return design[:, ~colin_cols]
 
 

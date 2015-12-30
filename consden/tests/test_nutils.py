@@ -69,11 +69,17 @@ def test_drop_colin():
         assert_array_equal(drop_colin(eyes), eyes)
         # Dependent columns don't get dropped only columns colinear with other
         # columns in the design
-        eyes_1 = np.c_[eyes, np.ones(N)]
+        ones = np.ones((N, 1))
+        eyes_1 = np.c_[eyes, ones]
         assert_array_equal(drop_colin(eyes_1), eyes_1)
         # Colinear columns get dropped
         eyes_eyes = np.c_[eyes, np.eye(N)[:, :2]]
-        assert_array_equal(drop_colin(eyes_eyes), eyes)
+        ee_copy = eyes_eyes.copy()
+        dropped = drop_colin(eyes_eyes)
+        assert_array_equal(dropped, eyes)
+        # Check that dropping retuns array with different memory from original
+        dropped[0, 0] = 99
+        assert_array_equal(eyes_eyes, ee_copy)
         eyes_eyes_2 = np.c_[np.eye(N)[:, :2], eyes]
         assert_array_equal(drop_colin(eyes_eyes_2), eyes)
         # Test normalization
@@ -97,6 +103,11 @@ def test_drop_colin():
         assert_array_equal(drop_colin(small_eyes, tol=tol), eyes)
         small_eyes = np.c_[eyes, normed_1(eps * (N + 3), N)]
         assert_array_equal(drop_colin(small_eyes, tol=tol), small_eyes)
+        # Different reference design
+        assert_array_equal(drop_colin(eyes_1, eyes), ones)
+        assert_array_equal(drop_colin(eyes, eyes[:, :2]), eyes[:, 2:])
+        # Can use list
+        assert_array_equal(drop_colin(eyes_1, eyes.tolist()), ones)
 
 
 def test_dct_ii_basis():
