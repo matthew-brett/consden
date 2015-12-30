@@ -10,6 +10,12 @@ from nipy.algorithms.statistics.formula.formulae import make_recarray
 
 EPS = np.finfo(float).eps
 
+# T1 for gray matter at 3T, in seconds. Wansapura et al. JMRI 9: 531-538 (1999)
+T1_GRAY_3T = 1.3
+# T1 for gray matter at 1.5T, in seconds.
+# https://en.wikipedia.org/wiki/Relaxation_(NMR)#T1
+T1_GRAY_1p5T = 0.920
+
 
 def spline_basis(volume_times, order=3):
     """ Return spline drift basis, with knots in time center
