@@ -1,16 +1,20 @@
 """ Testing nutils module
 """
 
+from os.path import dirname, join as pjoin
+
 import numpy as np
 
 from ..nutils import (spline_basis, delta_basis, step_basis, t1_basis,
-                      drop_colin)
+                      drop_colin, dct_ii_basis)
 
 from numpy.testing import (assert_almost_equal,
                            assert_array_equal)
 
 from nose.tools import (assert_true, assert_false, assert_raises,
                         assert_equal, assert_not_equal)
+
+HERE = dirname(__file__)
 
 
 def test_spline_basis():
@@ -54,7 +58,7 @@ def test_t1_basis():
 def test_drop_colin():
 
     def normed_1(delta, n):
-        # A normalized vector with 1+delta as first element, 0 else
+        # A normalized vector with 1 + delta as first element
         vec = np.zeros(n)
         vec[0] = 1 + delta
         vec[1] = -np.sqrt(2 * delta + delta ** 2)
@@ -93,3 +97,22 @@ def test_drop_colin():
         assert_array_equal(drop_colin(small_eyes, tol=tol), eyes)
         small_eyes = np.c_[eyes, normed_1(eps * (N + 3), N)]
         assert_array_equal(drop_colin(small_eyes, tol=tol), small_eyes)
+
+
+def test_dct_ii_basis():
+    # Test DCT-II basis
+    for N in (5, 10, 100):
+        spm_fname = pjoin(HERE, 'dct_{0}.txt'.format(N))
+        spm_mtx = np.loadtxt(spm_fname)
+        vol_times = np.arange(N) * 15. + 3.2
+        our_dct = dct_ii_basis(vol_times)
+        # Check dot products of columns
+        sq_col_lengths = np.ones(N) * N / 2.
+        sq_col_lengths[0] = N
+        assert_almost_equal(our_dct.T.dot(our_dct),
+                            np.diag(sq_col_lengths))
+        col_lengths = np.sqrt(sq_col_lengths)
+        assert_almost_equal(our_dct / col_lengths, spm_mtx)
+        for i in range(N):
+            assert_almost_equal(dct_ii_basis(vol_times, i) / col_lengths[:i],
+                                spm_mtx[:, :i])

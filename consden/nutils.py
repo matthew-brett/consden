@@ -79,6 +79,40 @@ def drop_colin(design, tol=None):
     return design[:, ~colin_cols]
 
 
+def dct_ii_basis(volume_times, order=None):
+    """ DCT II basis up to order `order`
+
+    See: https://en.wikipedia.org/wiki/Discrete_cosine_transform#DCT-II
+
+    Basis not normalized to length 1, and therefore, basis is not orthogonal.
+
+    Parameters
+    ----------
+    volume_times : array-like
+        Times of acquisition of each volume.  Must be regular and continuous
+        otherwise we raise an error.
+    order : int, optional
+        Order of DCT-II basis
+
+    Returns
+    -------
+    dct_basis : array
+        Shape ``(len(volume_times), order)`` array with DCT-II basis up to
+        order `order`.
+    """
+    N = len(volume_times)
+    if order is None:
+        order = N
+    if not np.allclose(np.diff(np.diff(volume_times)), 0):
+        raise RuntimeError("DCT basis assumes continuous regular sampling")
+    n = np.arange(N)
+    cycle = np.pi * (n + 0.5) / N
+    dct_basis = np.zeros((N, order))
+    for k in range(0, order):
+        dct_basis[:, k] = np.cos(cycle * k)
+    return dct_basis
+
+
 def openfmri2nipy(fname):
     """ Return contents of OpenFMRI stimulus file `fname` as nipy recarray
 
