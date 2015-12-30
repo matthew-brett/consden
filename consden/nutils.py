@@ -1,4 +1,4 @@
-""" Utilities to make it easier to work with nipy function
+""" Utilities to make it easier to work with nipy functions
 """
 
 import numpy as np
@@ -7,7 +7,6 @@ from scipy.linalg import toeplitz
 
 from nipy.modalities.fmri.design import natural_spline
 from nipy.algorithms.statistics.formula.formulae import make_recarray
-from nipy.modalities.fmri.design_matrix import DesignMatrix
 
 EPS = np.finfo(float).eps
 
@@ -81,7 +80,18 @@ def drop_colin(design, tol=None):
 
 
 def openfmri2nipy(fname):
-    """ Return contents of OpenFMRI stimulus `fname` as nipy recarray
+    """ Return contents of OpenFMRI stimulus file `fname` as nipy recarray
+
+    Parameters
+    ----------
+    fname : str
+        Path to OpenFMRI stimulus file
+
+    Returns
+    -------
+    block_spec : array
+        Structured array with fields "start" (corresponding to onset time),
+        "end" (onset time plus duration), "amplitude".
     """
     onsets, durations, amplitudes = np.loadtxt(fname).T
     return make_recarray(
