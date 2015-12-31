@@ -6,7 +6,7 @@ from os.path import dirname, join as pjoin
 import numpy as np
 
 from ..nutils import (spline_basis, delta_basis, step_basis, t1_basis,
-                      drop_colin, dct_ii_basis)
+                      drop_colin, demean_cols, dct_ii_basis)
 
 from numpy.testing import (assert_almost_equal,
                            assert_array_equal)
@@ -108,6 +108,14 @@ def test_drop_colin():
         assert_array_equal(drop_colin(eyes, eyes[:, :2]), eyes[:, 2:])
         # Can use list
         assert_array_equal(drop_colin(eyes_1, eyes.tolist()), ones)
+
+
+def test_demean_cols():
+    # Test removing the mean from columns
+    X = np.arange(24).reshape((6, 4))
+    assert_almost_equal(demean_cols(X).mean(axis=0), 0)
+    X = np.arange(24).reshape((6, 4)) - 100
+    assert_almost_equal(demean_cols(X).mean(axis=0), 0)
 
 
 def test_dct_ii_basis():

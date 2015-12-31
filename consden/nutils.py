@@ -99,6 +99,13 @@ def drop_colin(design, ref_design=None, tol=None):
     return design[:, ~colin_cols]
 
 
+def demean_cols(X):
+    """ Remove mean from columns of 2D array `X`
+    """
+    X = np.asarray(X)
+    return X - np.mean(X, axis=0)
+
+
 def dct_ii_basis(volume_times, order=None, normcols=False):
     """ DCT II basis up to order `order`
 
