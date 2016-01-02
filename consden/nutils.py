@@ -60,13 +60,21 @@ def t1_basis(volume_times, t1):
     return np.where(times_since < 0, 0, np.e ** (-times_since / t1))
 
 
-def _norm_cols(x):
-    x = np.asarray(x)
-    return x / npl.norm(x, axis=0)
+def _norm_cols(X):
+    """ Divide columns of array `X` by Euclidean lengths
+
+    Return normalized `X` and norms
+    """
+    X = np.asarray(X)
+    norms = npl.norm(X, axis=0)
+    # Avoid divide by zero warning for zero-length columns
+    return X / np.where(norms == 0, 1, norms), norms
 
 
 def drop_colin(design, ref_design=None, tol=None):
     """ Drop colinear columns from 2D array `design`
+
+    Zero-length columns also dropped.
 
     Parameters
     ----------
@@ -86,9 +94,9 @@ def drop_colin(design, ref_design=None, tol=None):
         colinear, we drop column ``j`` if j > i.
     """
     design = np.array(design)
-    normed = _norm_cols(design)
+    normed, norms = _norm_cols(design)
     against_self = ref_design is None
-    ref_normed = normed if against_self else _norm_cols(ref_design)
+    ref_normed = normed if against_self else _norm_cols(ref_design)[0]
     if tol is None:
         tol = np.finfo(normed.dtype).eps * design.shape[0]
     cosines = ref_normed.T.dot(normed)
@@ -96,7 +104,7 @@ def drop_colin(design, ref_design=None, tol=None):
     if against_self:  # Ignore colinearity of column with self
         colinear = np.triu(colinear, 1)
     colin_cols = np.any(colinear, axis=0)
-    return design[:, ~colin_cols]
+    return design[:, ~colin_cols & (np.abs(norms) > tol)]
 
 
 def demean_cols(X):

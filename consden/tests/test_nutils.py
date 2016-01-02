@@ -108,6 +108,11 @@ def test_drop_colin():
         assert_array_equal(drop_colin(eyes, eyes[:, :2]), eyes[:, 2:])
         # Can use list
         assert_array_equal(drop_colin(eyes_1, eyes.tolist()), ones)
+        # Dropping zero-length columns
+        eyes_with_0 = np.c_[eyes, ones, np.zeros(N)]
+        assert_array_equal(drop_colin(eyes_with_0), eyes_1)
+        eyes_with_00 = np.c_[np.zeros(N), eyes, ones, np.zeros(N)]
+        assert_array_equal(drop_colin(eyes_with_00), eyes_1)
 
 
 def test_demean_cols():
