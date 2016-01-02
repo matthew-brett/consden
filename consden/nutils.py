@@ -40,7 +40,15 @@ def step_basis(volume_times):
 
 
 def t1_basis(volume_times, t1):
-    """ Basis for T1 decay with time constant `t1`
+    r""" Basis for T1 decay with time constant `t1`
+
+    From Wikipedia: https://en.wikipedia.org/wiki/Spin%E2%80%93lattice_relaxation
+
+    .. math::
+
+        M_z(t) = M_{z,\mathrm{eq}}
+                 - \left [ M_{z,\mathrm{eq}}
+                 - M_{z}(0) \right ] e^{-t/T_1}
 
     Parameters
     ----------
