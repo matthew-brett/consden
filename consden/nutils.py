@@ -17,6 +17,14 @@ T1_GRAY_3T = 1.3
 # https://en.wikipedia.org/wiki/Relaxation_(NMR)#T1
 T1_GRAY_1p5T = 0.920
 
+# Convert from Tesla to T1 constant in gray matter
+TESLA2T1_GRAY = {'1.5': T1_GRAY_1p5T,
+                 1.5: T1_GRAY_1p5T,
+                 '3.0': T1_GRAY_3T,
+                 '3': T1_GRAY_3T,
+                 3: T1_GRAY_3T,
+                 3.0: T1_GRAY_3T}
+
 
 def spline_basis(volume_times, order=3):
     """ Return spline drift basis, with knots in time center
