@@ -1,10 +1,20 @@
+""" Processing designs for OpenFMRI """
+
 import numpy as np
 import numpy.linalg as npl
 
-from .nutils import (drop_colin, demean_cols, delta_basis, step_basis,
-                     t1_basis)
+from six import string_types
+
+import nibabel as nib
 
 import regreg.api as rr
+
+from nipy.labs.mask import compute_mask
+from nipy.modalities.fmri.design import block_design, stack_designs
+
+from .nutils import (drop_colin, demean_cols, delta_basis, step_basis,
+                     t1_basis, dct_ii_basis, openfmri2nipy)
+
 
 
 def build_confounds(exp_design, vol_times, t1_constant):
@@ -89,3 +99,41 @@ def solve_with_confounds(Y, X_exp, X_confounds):
     # Reconstructing estimates for experimental design
     B_exp_design = np.dot(X_exp_pinv, Y - np.dot(X_confounds, B_confounds))
     return B_exp_design, B_confounds
+
+
+def _to_3d(something_by_vox, vol_shape, mask, fill=0):
+    """ Convert N by V array to 4D shape `vol_shape` + (N,) using `mask`
+    """
+    T = something_by_vox.shape[0]
+    out = np.zeros(vol_shape + (T,))
+    if fill != 0:
+        out += fill
+    out[mask] = something_by_vox.T
+    return out
+
+
+def analyze_4d(task_fnames, bold_fname, t1_constant, n_dummies=0, TR=None,
+              dct_order=8):
+    if isinstance(task_fnames, string_types):
+        task_fnames = [task_fnames]
+    img = nib.load(bold_fname)
+    data = img.get_data()[..., n_dummies:]
+    vol_shape, n_trs = data.shape[:-1], data.shape[-1]
+    if TR is None:
+        TR = img.header['pixdim'][4]
+        if TR in (0, 1):
+            raise ValueError("TR not valid in image, set with kwarg")
+    vol_times = np.arange(n_dummies, img.shape[-1]) * TR
+    mean_data = np.mean(data, axis=-1)
+    mask = compute_mask(mean_data)
+    Y = data[mask].T
+    assert Y.shape[0] == n_trs
+    block_specs = [openfmri2nipy(fname) for fname in task_fnames]
+    exp_cons = [block_design(spec, vol_times) for spec in block_specs]
+    exp_cons.append((dct_ii_basis(vol_times, dct_order),))
+    X_e, contrasts = stack_designs(*exp_cons)
+    X_c = build_confounds(X_e, vol_times, t1_constant)
+    B_e, B_c = solve_with_confounds(Y, X_e, X_c)
+    B_e_naive = npl.pinv(X_e).dot(Y)
+    return [contrasts] + [_to_3d(b, vol_shape, mask)
+                          for b in (B_e_naive, B_e, B_c)]
