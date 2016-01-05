@@ -106,6 +106,9 @@ def test_big_utils():
                                           t1_constant,
                                           n_dummies=n_dummies,
                                           dct_order=dct_order)
-    assert_array_equal(task, B_n)
-    assert_array_equal(task_resid, B_e)
-    assert_array_equal(confounds, B_c)
+    assert_array_equal(task, B_n.get_data())
+    assert_array_equal(task_resid, B_e.get_data())
+    assert_array_equal(confounds, B_c.get_data())
+    for beta_img in (B_n, B_e, B_c):
+        assert_array_equal(beta_img.affine, img.affine)
+        assert_array_equal(beta_img.shape[:-1], img.shape[:-1])
