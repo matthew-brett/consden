@@ -6,7 +6,7 @@ from os.path import dirname, join as pjoin
 import numpy as np
 
 from ..nutils import (spline_basis, delta_basis, step_basis, t1_basis,
-                      drop_colin, demean_cols, dct_ii_basis)
+                      drop_colin, demean_cols, dct_ii_basis, openfmri2nipy)
 
 from numpy.testing import (assert_almost_equal,
                            assert_array_equal)
@@ -146,3 +146,16 @@ def test_dct_ii_basis():
                                 spm_mtx[:, :i])
             assert_almost_equal(dct_ii_basis(vol_times, i, True),
                                 spm_mtx[:, :i])
+
+
+def test_openfmri2nipy():
+    # Test loading / processing OpenFMRI stimulus file
+    stim_file = pjoin(HERE, 'cond_test1.txt')
+    ons_dur_amp = np.loadtxt(stim_file)
+    onsets, durations, amplitudes = ons_dur_amp.T
+    for in_param in (stim_file, ons_dur_amp):
+        res = openfmri2nipy(in_param)
+        assert_equal(res.dtype.names, ('start', 'end', 'amplitude'))
+        assert_array_equal(res['start'], onsets[:, None])
+        assert_array_equal(res['end'], (onsets + durations)[:, None])
+        assert_array_equal(res['amplitude'], amplitudes[:, None])

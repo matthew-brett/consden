@@ -172,13 +172,14 @@ def dct_ii_basis(volume_times, order=None, normcols=False):
     return dct_basis
 
 
-def openfmri2nipy(fname):
-    """ Return contents of OpenFMRI stimulus file `fname` as nipy recarray
+def openfmri2nipy(ons_dur_amp):
+    """ Contents of OpenFMRI condition file `ons_dur_map` as nipy recarray
 
     Parameters
     ----------
-    fname : str
-        Path to OpenFMRI stimulus file
+    ons_dur_amp : str or array
+        Path to OpenFMRI stimulus file or 2D array containing three columns
+        corresponding to onset, duration, amplitude.
 
     Returns
     -------
@@ -186,7 +187,9 @@ def openfmri2nipy(fname):
         Structured array with fields "start" (corresponding to onset time),
         "end" (onset time plus duration), "amplitude".
     """
-    onsets, durations, amplitudes = np.loadtxt(fname).T
+    if not isinstance(ons_dur_amp, np.ndarray):
+        ons_dur_amp = np.loadtxt(ons_dur_amp)
+    onsets, durations, amplitudes = ons_dur_amp.T
     return make_recarray(
         np.column_stack((onsets, onsets + durations, amplitudes)),
         names=['start', 'end', 'amplitude'])
