@@ -118,13 +118,10 @@ def _to_img(something_by_vox, img, mask, fill=0):
     return nib.Nifti1Image(data, img.affine, img.header)
 
 
-def analyze_4d(task_fnames, bold_fname, t1_constant, n_dummies=0, TR=None,
+def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
               dct_order=8):
-    if isinstance(task_fnames, string_types):
-        task_fnames = [task_fnames]
     img = nib.load(bold_fname)
     data = img.get_data()[..., n_dummies:]
-    vol_shape, n_trs = data.shape[:-1], data.shape[-1]
     if TR is None:
         TR = img.header['pixdim'][4]
         if TR in (0, 1):
@@ -133,8 +130,7 @@ def analyze_4d(task_fnames, bold_fname, t1_constant, n_dummies=0, TR=None,
     mean_data = np.mean(data, axis=-1)
     mask = compute_mask(mean_data)
     Y = data[mask].T
-    assert Y.shape[0] == n_trs
-    block_specs = [openfmri2nipy(fname) for fname in task_fnames]
+    assert Y.shape[0] == data.shape[-1]
     exp_cons = [block_design(spec, vol_times) for spec in block_specs]
     exp_cons.append((dct_ii_basis(vol_times, dct_order),))
     X_e, contrasts = stack_designs(*exp_cons)
