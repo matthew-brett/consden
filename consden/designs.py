@@ -13,8 +13,7 @@ from nipy.labs.mask import compute_mask
 from nipy.modalities.fmri.design import block_design, stack_designs
 
 from .nutils import (drop_colin, demean_cols, delta_basis, step_basis,
-                     t1_basis, dct_ii_basis, openfmri2nipy)
-
+                     t1_basis, dct_ii_basis)
 
 
 def build_confounds(exp_design, vol_times, t1_constant):
