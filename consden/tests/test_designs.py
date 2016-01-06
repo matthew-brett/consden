@@ -101,14 +101,17 @@ def test_big_utils():
     confounds = np.zeros((mean_data.shape + (soln_resid.shape[0],)))
     confounds[mask] = soln_resid.T
     # analyze_4d
-    contrasts, B_n, B_e, B_c = analyze_4d([block_spec],
-                                          func_fname,
-                                          t1_constant,
-                                          n_dummies=n_dummies,
-                                          dct_order=dct_order)
+    contrasts, B_n, B_e, B_c, img_mask = analyze_4d([block_spec],
+                                                    func_fname,
+                                                    t1_constant,
+                                                    n_dummies=n_dummies,
+                                                    dct_order=dct_order)
     assert_array_equal(task, B_n.get_data())
     assert_array_equal(task_resid, B_e.get_data())
     assert_array_equal(confounds, B_c.get_data())
+    assert_array_equal(mask, img_mask.get_data())
+    for out_img in (B_n, B_e, B_c, img_mask):
+        assert_array_equal(out_img.affine, img.affine)
+        assert_array_equal(out_img.shape[:3], img.shape[:3])
     for beta_img in (B_n, B_e, B_c):
-        assert_array_equal(beta_img.affine, img.affine)
-        assert_array_equal(beta_img.shape[:-1], img.shape[:-1])
+        assert_equal(beta_img.get_data_dtype().type, np.float64)

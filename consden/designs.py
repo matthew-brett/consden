@@ -114,7 +114,9 @@ def _to_3d(something_by_vox, vol_shape, mask, fill=0):
 def _to_img(something_by_vox, img, mask, fill=0):
     vol_shape = img.shape[:-1]
     data = _to_3d(something_by_vox, vol_shape, mask, fill)
-    return nib.Nifti1Image(data, img.affine, img.header)
+    img = nib.Nifti1Image(data, img.affine, img.header)
+    img.set_data_dtype(something_by_vox.dtype.type)
+    return img
 
 
 def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
@@ -136,5 +138,6 @@ def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
     X_c = build_confounds(X_e, vol_times, t1_constant)
     B_e, B_c = solve_with_confounds(Y, X_e, X_c)
     B_e_naive = npl.pinv(X_e).dot(Y)
-    return [contrasts] + [_to_img(b, img, mask)
-                          for b in (B_e_naive, B_e, B_c)]
+    return ([contrasts] +
+            [_to_img(b, img, mask) for b in (B_e_naive, B_e, B_c)] +
+            [nib.Nifti1Image(mask, img.affine, img.header)])
