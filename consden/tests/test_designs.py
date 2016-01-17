@@ -9,11 +9,17 @@ import nibabel as nib
 
 from nipy.labs.mask import compute_mask
 from nipy.modalities.fmri import design as fmrid
+from nipy.modalities.fmri.utils import (lambdify_t, T, convolve_functions,
+                                        blocks)
+from nipy.modalities.fmri.hrf import glover, dglover
+from nipy.algorithms.statistics.formula import make_recarray
+from nipy.modalities.fmri.tests.test_design import assert_dict_almost_equal
 
 import regreg.api as rr
 
 from ..nutils import step_basis, t1_basis, dct_ii_basis, openfmri2nipy
-from ..designs import build_confounds, solve_with_confounds, analyze_4d
+from ..designs import (build_confounds, solve_with_confounds, analyze_4d,
+                       block_amplitudes)
 
 from numpy.testing import (assert_almost_equal,
                            assert_array_equal)
@@ -115,3 +121,63 @@ def test_big_utils():
         assert_array_equal(out_img.shape[:3], img.shape[:3])
     for beta_img in (B_n, B_e, B_c):
         assert_equal(beta_img.get_data_dtype().type, np.float64)
+
+
+def test_block_amplitudes():
+    # Test event design helper function
+    # An event design with one event type
+    onsets = np.array([0, 20, 40, 60])
+    durations = np.array([2, 3, 4, 5])
+    offsets = onsets + durations
+    amplitudes = [3, 2, 1, 4]
+    t = np.arange(0, 100, 2.5)
+
+    def mk_blk_tc(amplitudes=None, hrf=glover):
+        func_amp = blocks(zip(onsets, offsets), amplitudes)
+        # Make real time course for block onset / offsets / amplitudes
+        term = convolve_functions(func_amp, hrf(T),
+                                  (-5, 70),  # step func support
+                                  (0, 30.),  # conv kernel support
+                                  0.02)  # dt
+        return lambdify_t(term)(t)
+
+    no_amps = make_recarray(zip(onsets, offsets), ('start', 'end'))
+    amps = make_recarray(zip(onsets, offsets, amplitudes),
+                         ('start', 'end', 'amplitude'))
+    X, contrasts = block_amplitudes('ev0', no_amps, t)
+    assert_almost_equal(X, mk_blk_tc())
+    assert_dict_almost_equal(contrasts, {'ev0_0': 1})
+    # Same thing as 2D array
+    X, contrasts = block_amplitudes('ev0', np.c_[onsets, offsets], t)
+    assert_almost_equal(X, mk_blk_tc())
+    assert_dict_almost_equal(contrasts, {'ev0_0': 1})
+    # Now as list
+    X, contrasts = block_amplitudes('ev0', list(zip(onsets, offsets)), t)
+    assert_almost_equal(X, mk_blk_tc())
+    assert_dict_almost_equal(contrasts, {'ev0_0': 1})
+    # Add amplitudes
+    X_a, contrasts_a = block_amplitudes('ev1', amps, t)
+    assert_almost_equal(X_a, mk_blk_tc(amplitudes=amplitudes))
+    assert_dict_almost_equal(contrasts_a, {'ev1_0': 1})
+    # Same thing as 2D array
+    X_a, contrasts_a = block_amplitudes('ev1',
+                                        np.c_[onsets, offsets, amplitudes],
+                                        t)
+    assert_almost_equal(X_a, mk_blk_tc(amplitudes=amplitudes))
+    assert_dict_almost_equal(contrasts_a, {'ev1_0': 1})
+    # Add another HRF
+    X_2, contrasts_2 = block_amplitudes('ev0', no_amps, t, (glover, dglover))
+    assert_almost_equal(X_2, np.c_[mk_blk_tc(), mk_blk_tc(hrf=dglover)])
+    assert_dict_almost_equal(contrasts_2,
+                             {'ev0_0': [1, 0], 'ev0_1': [0, 1]})
+    # Errors on bad input
+    no_start = make_recarray(zip(onsets, offsets), ('begin', 'end'))
+    assert_raises(ValueError, block_amplitudes, 'ev0', no_start, t)
+    no_end = make_recarray(zip(onsets, offsets), ('start', 'finish'))
+    assert_raises(ValueError, block_amplitudes, 'ev0', no_end, t)
+    funny_amp = make_recarray(zip(onsets, offsets, amplitudes),
+                              ('start', 'end', 'intensity'))
+    assert_raises(ValueError, block_amplitudes, 'ev0', funny_amp, t)
+    funny_extra = make_recarray(zip(onsets, offsets, amplitudes, onsets),
+                              ('start', 'end', 'amplitude', 'extra_field'))
+    assert_raises(ValueError, block_amplitudes, 'ev0', funny_extra, t)

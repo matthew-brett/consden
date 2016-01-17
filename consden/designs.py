@@ -141,3 +141,86 @@ def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
     return ([contrasts] +
             [_to_img(b, img, mask) for b in (B_e_naive, B_e, B_c)] +
             [nib.Nifti1Image(mask, img.affine, img.header)])
+
+
+from nipy.modalities.fmri.hrf import glover
+from nipy.modalities.fmri.utils import (T, convolve_functions, blocks)
+from nipy.algorithms.statistics.formula.formulae import (
+    Formula, make_recarray)
+
+
+def block_amplitudes(name, block_spec, t, hrfs=(glover,),
+                     convolution_padding=5.,
+                     convolution_dt=0.02,
+                     hrf_interval=(0.,30.)):
+    """ Design matrix at times `t` for blocks specification `block_spec`
+
+    Create design matrix for linear model from a block specification
+    `block_spec`,  evaluating design rows at a sequence of time values `t`.
+
+    `block_spec` may specify amplitude of response for each event, if different
+    (see description of `block_spec` parameter below).
+
+    The on-off step function implied by `block_spec` will be convolved with
+    each HRF in `hrfs` to form a design matrix shape ``(len(t), len(hrfs))``.
+
+    Parameters
+    ----------
+    name : str
+        Name of condition
+    block_spec : np.recarray or array-like
+       A recarray having fields ``start, end, amplitude``, or a 2D ndarray /
+       array-like with three columns corresponding to start, end, amplitude.
+    t : np.ndarray
+       An array of np.float values at which to evaluate the design. Common
+       examples would be the acquisition times of an fMRI image.
+    hrfs : sequence, optional
+       A sequence of (symbolic) HRFs that will be convolved with each block.
+       Default is ``(glover,)``.
+    convolution_padding : float, optional
+       A padding for the convolution with the HRF. The intervals
+       used for the convolution are the smallest 'start' minus this
+       padding to the largest 'end' plus this padding.
+    convolution_dt : float, optional
+       Time step for high-resolution time course for use in convolving the
+       blocks with each HRF.
+    hrf_interval: length 2 sequence of floats, optional
+       Interval over which the HRF is assumed supported, used in the
+       convolution.
+
+    Returns
+    -------
+    X : np.ndarray
+       The design matrix with ``X.shape[0] == t.shape[0]``. The number of
+       columns will be ``len(hrfs)``.
+    contrasts : dict
+       A contrast is generated for each HRF specified in `hrfs`.
+    """
+    block_spec = np.asarray(block_spec)
+    if block_spec.dtype.names is not None:
+        if not block_spec.dtype.names in (('start', 'end'),
+                                          ('start', 'end', 'amplitude')):
+            raise ValueError('expecting fields called "start", "end" and '
+                             '(optionally) "amplitude"')
+        block_spec = np.array(block_spec.tolist())
+    block_times = block_spec[:, :2]
+    amplitudes = block_spec[:, 2] if block_spec.shape[1] == 3 else None
+    # Now construct the design in time space
+    convolution_interval = (block_times.min() - convolution_padding,
+                            block_times.max() + convolution_padding)
+    B = blocks(block_times, amplitudes=amplitudes)
+    t_terms = []
+    c_t = {}
+    n_hrfs = len(hrfs)
+    for hrf_no in range(n_hrfs):
+        t_terms.append(convolve_functions(B, hrfs[hrf_no](T),
+                                          convolution_interval,
+                                          hrf_interval,
+                                          convolution_dt))
+        contrast = np.zeros(n_hrfs)
+        contrast[hrf_no] = 1
+        c_t['{0}_{1:d}'.format(name, hrf_no)] = contrast
+    t_formula = Formula(t_terms)
+    tval = make_recarray(t, ['t'])
+    X_t = t_formula.design(tval, return_float=True)
+    return X_t, c_t
