@@ -156,6 +156,6 @@ def test_openfmri2nipy():
     for in_param in (stim_file, ons_dur_amp):
         res = openfmri2nipy(in_param)
         assert_equal(res.dtype.names, ('start', 'end', 'amplitude'))
-        assert_array_equal(res['start'], onsets[:, None])
-        assert_array_equal(res['end'], (onsets + durations)[:, None])
-        assert_array_equal(res['amplitude'], amplitudes[:, None])
+        assert_array_equal(res['start'], onsets)
+        assert_array_equal(res['end'], onsets + durations)
+        assert_array_equal(res['amplitude'], amplitudes)
