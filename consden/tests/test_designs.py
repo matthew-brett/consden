@@ -107,7 +107,7 @@ def test_big_utils():
     confounds = np.zeros((mean_data.shape + (soln_resid.shape[0],)))
     confounds[mask] = soln_resid.T
     # analyze_4d
-    contrasts, B_n, B_e, B_c, img_mask = analyze_4d([block_spec],
+    contrasts, B_n, B_e, B_c, img_mask = analyze_4d([['ev', block_spec]],
                                                     func_fname,
                                                     t1_constant,
                                                     n_dummies=n_dummies,

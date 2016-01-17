@@ -119,8 +119,8 @@ def _to_img(something_by_vox, img, mask, fill=0):
     return img
 
 
-def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
-              dct_order=8):
+def analyze_4d(block_infos, bold_fname, t1_constant, n_dummies=0, TR=None,
+               dct_order=8):
     img = nib.load(bold_fname)
     data = img.get_data()[..., n_dummies:]
     if TR is None:
@@ -132,7 +132,8 @@ def analyze_4d(block_specs, bold_fname, t1_constant, n_dummies=0, TR=None,
     mask = compute_mask(mean_data)
     Y = data[mask].T
     assert Y.shape[0] == data.shape[-1]
-    exp_cons = [block_design(spec, vol_times) for spec in block_specs]
+    exp_cons = [block_amplitudes(name, spec, vol_times)
+                for name, spec in block_infos]
     exp_cons.append((dct_ii_basis(vol_times, dct_order),))
     X_e, contrasts = stack_designs(*exp_cons)
     X_c = build_confounds(X_e, vol_times, t1_constant)
