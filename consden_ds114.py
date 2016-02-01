@@ -64,7 +64,7 @@ def analyze_model(run_model):
                                       X,
                                       func_fname,
                                       t1_constant,
-                                      n_dummies=n_dummies)
+                                      n_dummies=n_dummies - n_removed)
     nib.save(B_n, pjoin(out_path, func_prefix + 'b_n.nii'))
     nib.save(B_e, pjoin(out_path, func_prefix + 'b_e.nii'))
     nib.save(B_c, pjoin(out_path, func_prefix + 'b_c.nii'))
