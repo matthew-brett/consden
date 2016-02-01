@@ -20,7 +20,8 @@ root_path = expanduser('~/data/ds114')
 subjects = get_subjects(root_path)
 model_no = 0
 t1_constant = T1_GRAY_1p5T
-n_dummies = 4
+n_dummies = 4  # Number of dummy scans where first dummy starts at T=0
+n_removed = 4  # Number of dummy scans already removed from 4D functional
 dct_order = 8
 func_prefix = 'waf'
 func_rp_prefix = 'af'
@@ -50,6 +51,7 @@ def analyze_model(run_model):
     func_fname = or_gz(prefix_fname(func_fname, func_prefix))
     vol_times = get_vol_times(func_fname,
                               n_dummies=n_dummies,
+                              n_removed=n_removed,
                               TR=TR)
     cond_no, ons_dur_amp = run_model.conditions[0]
     block_spec = openfmri2nipy(ons_dur_amp)

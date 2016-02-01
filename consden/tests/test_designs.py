@@ -49,6 +49,9 @@ def test_build_confounds():
 def test_get_vol_times():
     assert_almost_equal(get_vol_times(FUNC_FNAME), np.arange(14) * 2.5)
     assert_almost_equal(get_vol_times(FUNC_FNAME, 4), np.arange(4, 14) * 2.5)
+    # Use n_removed
+    assert_almost_equal(get_vol_times(FUNC_FNAME, 4, 5),
+                        np.arange(4, 19) * 2.5)
     img = nib.load(FUNC_FNAME)
     assert_almost_equal(get_vol_times(img), np.arange(14) * 2.5)
     for val in (0, 1):
@@ -96,7 +99,7 @@ def test_big_utils():
     mask = compute_mask(mean_data)
     vox_by_time = data[mask]
     vol_times = np.arange(n_dummies, img.shape[-1]) * TR
-    assert_array_equal(vol_times, get_vol_times(FUNC_FNAME, 4, TR))
+    assert_array_equal(vol_times, get_vol_times(FUNC_FNAME, 4, TR=TR))
     dct_basis = dct_ii_basis(vol_times, dct_order)
     block_spec = openfmri2nipy(TASK_FNAME)
     experiment, cons = fmrid.block_design(block_spec, vol_times)

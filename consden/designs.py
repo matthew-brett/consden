@@ -119,7 +119,7 @@ def _to_img(something_by_vox, img, mask, fill=0):
     return img
 
 
-def get_vol_times(img, n_dummies=0, TR=None):
+def get_vol_times(img, n_dummies=0, n_removed=0, TR=None):
     """ Return volume onset times in seconds for image `img`
 
     Parameters
@@ -128,8 +128,13 @@ def get_vol_times(img, n_dummies=0, TR=None):
         String giving image filename or nibabel image object with attributes
         ``shape`` and ``header``.
     n_dummies : int, optional
-        Number of dummy scans in volume (frames at beginning of run which we
-        will discard).
+        Number of dummy scans in volume.  This is the number frames at
+        beginning of run which we will discard or have discarded (see
+        `n_removed`).
+    n_removed : int, optional
+        Number of dummy scans already removed.  The time of the first scan is
+        (regardless of `n_removed`) ``n_dummies * TR``, but the time of the
+        last scan is ``(n_dummies + n_removed + img.shape[-1]) * TR``.
     TR : None or float, optional
         If None, try and get TR from `img`.  If TR in `img` seems to be an
         uninformative default raise ValueError.  If TR is not None, gives TR
@@ -139,14 +144,14 @@ def get_vol_times(img, n_dummies=0, TR=None):
     -------
     vol_times : 1D array
         1D array of volume onset times in seconds, length ``img.shape[-1] -
-        n_dummies``.
+        n_dummies + n_removed``.
     """
     img = img if hasattr(img, 'shape') else nib.load(img)
     if TR is None:
         TR = img.header['pixdim'][4]
         if TR in (0, 1):
             raise ValueError("TR not valid in image, set with kwarg")
-    return np.arange(n_dummies, img.shape[-1]) * TR
+    return np.arange(n_dummies, img.shape[-1] + n_removed) * TR
 
 
 def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
