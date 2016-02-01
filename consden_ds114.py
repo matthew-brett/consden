@@ -1,8 +1,11 @@
 from __future__ import print_function
 
-from os.path import (expanduser, split as psplit, join as pjoin, exists,
-                     splitext)
-import multiprocessing
+from os.path import (expanduser, split as psplit, join as pjoin, exists)
+
+MULTI = False
+
+if MULTI:
+    import multiprocessing
 
 import numpy as np
 
@@ -84,6 +87,9 @@ def gen_models(subjects):
 if __name__ == '__main__':
     jobs = []
     for model in gen_models(subjects):
-        p = multiprocessing.Process(target=analyze_model, args=(model,))
-        jobs.append(p)
-        p.start()
+        if MULTI:
+            p = multiprocessing.Process(target=analyze_model, args=(model,))
+            jobs.append(p)
+            p.start()
+        else:  # Serial run
+            analyze_model(model)
