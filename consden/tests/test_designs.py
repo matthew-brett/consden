@@ -19,7 +19,7 @@ import regreg.api as rr
 
 from ..nutils import step_basis, t1_basis, dct_ii_basis, openfmri2nipy
 from ..designs import (build_confounds, solve_with_confounds, analyze_4d,
-                       block_amplitudes)
+                       block_amplitudes, get_vol_times, compile_design)
 
 from numpy.testing import (assert_almost_equal,
                            assert_array_equal)
@@ -29,6 +29,8 @@ from nose.tools import (assert_true, assert_false, assert_raises,
 
 
 HERE = dirname(__file__)
+FUNC_FNAME = pjoin(HERE, 'small_func.nii')
+TASK_FNAME = pjoin(HERE, 'ds114_sub009_t2r1_cond.txt')
 
 
 def test_build_confounds():
@@ -44,11 +46,46 @@ def test_build_confounds():
     assert_array_equal(confounds, exp_confounds)
 
 
+def test_get_vol_times():
+    assert_almost_equal(get_vol_times(FUNC_FNAME), np.arange(14) * 2.5)
+    assert_almost_equal(get_vol_times(FUNC_FNAME, 4), np.arange(4, 14) * 2.5)
+    img = nib.load(FUNC_FNAME)
+    assert_almost_equal(get_vol_times(img), np.arange(14) * 2.5)
+    for val in (0, 1):
+        img.header['pixdim'][4] = val
+        assert_raises(ValueError, get_vol_times, img)
+        assert_almost_equal(get_vol_times(img, TR=2.5), np.arange(14) * 2.5)
+    img.header['pixdim'][4] = 2.5
+    assert_almost_equal(get_vol_times(img), np.arange(14) * 2.5)
+
+
+def test_compile_design():
+    block_spec = openfmri2nipy(TASK_FNAME)
+    vol_times = get_vol_times(FUNC_FNAME, 4)
+    experiment, cons = fmrid.block_design(block_spec, vol_times)
+    block_infos = [['ev', block_spec]]
+    for dct_order in range(1, 10):
+        dct_basis = dct_ii_basis(vol_times, dct_order)
+        X, cons = compile_design(vol_times, block_infos, dct_order=dct_order)
+        assert_array_equal(X, np.c_[experiment, dct_basis])
+        assert_almost_equal(cons['ev_0'], [1] + [0] * dct_order)
+    # Default DCT order is 8
+    X, cons = compile_design(vol_times, block_infos)
+    dct_8 = dct_ii_basis(vol_times, 8)
+    assert_array_equal(X, np.c_[experiment, dct_8])
+    # Adding extra columns
+    N = X.shape[0]
+    X, cons = compile_design(vol_times, block_infos, np.arange(N))
+    assert_array_equal(X, np.c_[experiment, np.arange(N), dct_8])
+    assert_almost_equal(cons['ev_0'], [1] + [0] * 9)
+    X, cons = compile_design(vol_times, block_infos, np.zeros((N, 3)))
+    assert_array_equal(X, np.c_[experiment, np.zeros((N, 3)), dct_8])
+    assert_almost_equal(cons['ev_0'], [1] + [0] * 11)
+
+
 def test_big_utils():
     # Overall analysis
-    func_fname = pjoin(HERE, 'small_func.nii')
-    task_fname = pjoin(HERE, 'ds114_sub009_t2r1_cond.txt')
-    img = nib.load(func_fname)
+    img = nib.load(FUNC_FNAME)
     TR = img.header['pixdim'][4]  # Not always reliable
     n_dummies = 4
     dct_order = 3
@@ -59,10 +96,15 @@ def test_big_utils():
     mask = compute_mask(mean_data)
     vox_by_time = data[mask]
     vol_times = np.arange(n_dummies, img.shape[-1]) * TR
+    assert_array_equal(vol_times, get_vol_times(FUNC_FNAME, 4, TR))
     dct_basis = dct_ii_basis(vol_times, dct_order)
-    block_spec = openfmri2nipy(task_fname)
+    block_spec = openfmri2nipy(TASK_FNAME)
     experiment, cons = fmrid.block_design(block_spec, vol_times)
     X_e = np.column_stack((experiment, dct_basis))
+    exp_design, contrasts = compile_design(vol_times,
+                                           [['ev', block_spec]],
+                                           dct_order=3)
+    assert_array_equal(X_e, exp_design)
     X_c = build_confounds(X_e, vol_times, t1_constant)
     # Build regreg model by hand
     Y = vox_by_time.T
@@ -107,11 +149,11 @@ def test_big_utils():
     confounds = np.zeros((mean_data.shape + (soln_resid.shape[0],)))
     confounds[mask] = soln_resid.T
     # analyze_4d
-    contrasts, B_n, B_e, B_c, img_mask = analyze_4d([['ev', block_spec]],
-                                                    func_fname,
-                                                    t1_constant,
-                                                    n_dummies=n_dummies,
-                                                    dct_order=dct_order)
+    B_n, B_e, B_c, img_mask = analyze_4d(vol_times,
+                                         exp_design,
+                                         FUNC_FNAME,
+                                         t1_constant,
+                                         n_dummies=n_dummies)
     assert_array_equal(task, B_n.get_data())
     assert_array_equal(task_resid, B_e.get_data())
     assert_array_equal(confounds, B_c.get_data())

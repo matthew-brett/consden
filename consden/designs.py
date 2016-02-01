@@ -119,28 +119,79 @@ def _to_img(something_by_vox, img, mask, fill=0):
     return img
 
 
-def analyze_4d(block_infos, bold_fname, t1_constant, n_dummies=0, TR=None,
-               dct_order=8):
-    img = nib.load(bold_fname)
-    data = img.get_data()[..., n_dummies:]
+def get_vol_times(img, n_dummies=0, TR=None):
+    """ Return volume onset times in seconds for image `img`
+
+    Parameters
+    ----------
+    img : str or image object
+        String giving image filename or nibabel image object with attributes
+        ``shape`` and ``header``.
+    n_dummies : int, optional
+        Number of dummy scans in volume (frames at beginning of run which we
+        will discard).
+    TR : None or float, optional
+        If None, try and get TR from `img`.  If TR in `img` seems to be an
+        uninformative default raise ValueError.  If TR is not None, gives TR
+        value in seconds.
+
+    Returns
+    -------
+    vol_times : 1D array
+        1D array of volume onset times in seconds, length ``img.shape[-1] -
+        n_dummies``.
+    """
+    img = img if hasattr(img, 'shape') else nib.load(img)
     if TR is None:
         TR = img.header['pixdim'][4]
         if TR in (0, 1):
             raise ValueError("TR not valid in image, set with kwarg")
-    vol_times = np.arange(n_dummies, img.shape[-1]) * TR
+    return np.arange(n_dummies, img.shape[-1]) * TR
+
+
+def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
+    """ Create design with given task specification and confounds
+
+    Parameters
+    ----------
+    vol_times : 1D array
+        Volume onset times in seconds.
+    block_infos : sequence
+        Sequence of length 2 sequences where elements are (name, blk_spec),
+        where ``name`` is a string, and ``blk_spec`` is a recarray matching the
+        format required for :func:`block_amplitudes`.
+    extra_cols : None or 2D array, optional
+        Extra columns to add to the design.
+    dct_order : int, optional
+        Order of DCT-II basis functions to append.
+
+    Returns
+    -------
+    design : 2D array
+        Design matrix
+    contrasts : dict
+        Dictionary of contrasts, one for each condition specified in
+        `block_infos`.
+    """
+    exp_cons = [block_amplitudes(name, spec, vol_times)
+                for name, spec in block_infos]
+    if extra_cols is not None:
+        exp_cons.append((extra_cols,))
+    exp_cons.append((dct_ii_basis(vol_times, dct_order),))
+    return stack_designs(*exp_cons)
+
+
+def analyze_4d(vol_times, exp_design, bold_fname, t1_constant, n_dummies=0):
+    img = nib.load(bold_fname)
+    data = img.get_data()[..., n_dummies:]
     mean_data = np.mean(data, axis=-1)
     mask = compute_mask(mean_data)
     Y = data[mask].T
     assert Y.shape[0] == data.shape[-1]
-    exp_cons = [block_amplitudes(name, spec, vol_times)
-                for name, spec in block_infos]
-    exp_cons.append((dct_ii_basis(vol_times, dct_order),))
-    X_e, contrasts = stack_designs(*exp_cons)
-    X_c = build_confounds(X_e, vol_times, t1_constant)
-    B_e, B_c = solve_with_confounds(Y, X_e, X_c)
-    B_e_naive = npl.pinv(X_e).dot(Y)
-    return ([contrasts] +
-            [_to_img(b, img, mask) for b in (B_e_naive, B_e, B_c)] +
+    X_c = build_confounds(exp_design, vol_times, t1_constant)
+    B_e, B_c = solve_with_confounds(Y, exp_design, X_c)
+    B_e_naive = npl.pinv(exp_design).dot(Y)
+    return ([_to_img(b, img, mask) for b in (B_e_naive, B_e, B_c)] +
             [nib.Nifti1Image(mask, img.affine, img.header)])
 
 
