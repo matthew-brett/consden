@@ -48,10 +48,6 @@ def test_build_confounds():
 
 def test_get_vol_times():
     assert_almost_equal(get_vol_times(FUNC_FNAME), np.arange(14) * 2.5)
-    assert_almost_equal(get_vol_times(FUNC_FNAME, 4), np.arange(4, 14) * 2.5)
-    # Use n_removed
-    assert_almost_equal(get_vol_times(FUNC_FNAME, 4, 5),
-                        np.arange(4, 19) * 2.5)
     img = nib.load(FUNC_FNAME)
     assert_almost_equal(get_vol_times(img), np.arange(14) * 2.5)
     for val in (0, 1):
@@ -90,16 +86,16 @@ def test_big_utils():
     # Overall analysis
     img = nib.load(FUNC_FNAME)
     TR = img.header['pixdim'][4]  # Not always reliable
-    n_dummies = 4
+    n_to_drop = 4
     dct_order = 3
     t1_constant = 5.0
     data = img.get_data()
-    data = data[..., n_dummies:]
+    data = data[..., n_to_drop:]
     mean_data = data.mean(axis=-1)
     mask = compute_mask(mean_data)
     vox_by_time = data[mask]
-    vol_times = np.arange(n_dummies, img.shape[-1]) * TR
-    assert_array_equal(vol_times, get_vol_times(FUNC_FNAME, 4, TR=TR))
+    vol_times = np.arange(n_to_drop, img.shape[-1]) * TR
+    assert_array_equal(vol_times, get_vol_times(FUNC_FNAME, TR=TR)[:-4] + 10)
     dct_basis = dct_ii_basis(vol_times, dct_order)
     block_spec = openfmri2nipy(TASK_FNAME)
     experiment, cons = fmrid.block_design(block_spec, vol_times)
@@ -156,7 +152,7 @@ def test_big_utils():
                                          exp_design,
                                          FUNC_FNAME,
                                          t1_constant,
-                                         n_dummies=n_dummies)
+                                         n_to_drop=n_to_drop)
     assert_array_equal(task, B_n.get_data())
     assert_array_equal(task_resid, B_e.get_data())
     assert_array_equal(confounds, B_c.get_data())

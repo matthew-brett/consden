@@ -23,7 +23,7 @@ def build_confounds(exp_design, vol_times, t1_constant):
         Experimental design containing task and any confounds that should be
         given unbiased estimates.
     vol_times : array shape (N,)
-        Vector of times at which each row of `exp_design` (volume) was
+        Vector of times at which each row of `exp_design` (frame) was
         collected.
     t1_constant : float
         T1 decay constant for T1 decay regressors.  See :func:`nutils.t1_basis`
@@ -117,22 +117,14 @@ def _to_img(something_by_vox, img, mask, fill=0):
     return img
 
 
-def get_vol_times(img, n_dummies=0, n_removed=0, TR=None):
-    """ Return volume onset times in seconds for image `img`
+def get_vol_times(img, TR=None):
+    """ Return frame onset times in seconds for image `img`
 
     Parameters
     ----------
     img : str or image object
         String giving image filename or nibabel image object with attributes
         ``shape`` and ``header``.
-    n_dummies : int, optional
-        Number of dummy scans in volume.  This is the number of frames at
-        beginning of run which we will discard or have discarded (see
-        `n_removed`).
-    n_removed : int, optional
-        Number of dummy scans already removed.  The time of the first scan is
-        (regardless of `n_removed`) ``n_dummies * TR``, but the time of the
-        last scan is ``(n_dummies + n_removed + img.shape[-1]) * TR``.
     TR : None or float, optional
         If None, try and get TR from `img`.  If TR in `img` seems to be an
         uninformative default raise ValueError.  If TR is not None, gives TR
@@ -141,30 +133,29 @@ def get_vol_times(img, n_dummies=0, n_removed=0, TR=None):
     Returns
     -------
     vol_times : 1D array
-        1D array of volume onset times in seconds, length ``img.shape[-1] -
-        n_dummies + n_removed``.
+        1D array of frame onset times in seconds, length ``img.shape[-1]``.
     """
     img = img if hasattr(img, 'shape') else nib.load(img)
     if TR is None:
         TR = img.header['pixdim'][4]
         if TR in (0, 1):
             raise ValueError("TR not valid in image, set with kwarg")
-    return np.arange(n_dummies, img.shape[-1] + n_removed) * TR
+    return np.arange(img.shape[-1]) * TR
 
 
 def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
     """ Create design with given task specification and confounds
 
     The times given in the ``blk_spec`` inputs in `block_info` are always
-    relative to the first volume recorded.  When we compile the design, we need to
-    sample the design at the times of the volumes we are analyzing (given in
+    relative to the first frame recorded.  When we compile the design, we need
+    to sample the design at the times of the frames we are analyzing (given in
     `vol_times`).  These may express the fact that we have dropped a number of
-    volumes at the beginning of the run, so that ``vol_times[0]`` is not 0.
+    frames at the beginning of the run, so that ``vol_times[0]`` is not 0.
 
     Parameters
     ----------
     vol_times : 1D array
-        Volume onset times in seconds.
+        Frame onset times in seconds.
     block_infos : sequence
         Sequence of length 2 sequences where elements are (name, blk_spec),
         where ``name`` is a string, and ``blk_spec`` is a recarray matching the
@@ -190,24 +181,25 @@ def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
     return stack_designs(*exp_cons)
 
 
-def analyze_4d(vol_times, exp_design, bold_fname, t1_constant, n_dummies=0):
+def analyze_4d(vol_times, exp_design, bold_fname, t1_constant, n_to_drop=0):
     """ Analyze 4D volume with given experimental design and confounds
 
     Parameters
     ----------
     vol_times : 1D array length N
-        Time at which each volume is sampled, relative to the time of the first
-        volume acquired.
-    exp_design : 2D array shape (T, P)
-        Where T is the number of volumes (== time points), and P is the number
+        Time at which each frame is sampled, relative to the time of the first
+        frame acquired.  First entry is time of first frame, *after* dropping
+        `n_to_drop` scans.
+    exp_design : 2D array shape (N, P)
+        Where T is the number of frames (== time points), and P is the number
         of regressors.
     bold_fname : str
-        Path to 4D image, containing array of shape (I, J, K, T).
+        Path to 4D image, containing array of shape (I, J, K, N + n_to_drop).
     t1_constant : float
         T1 value for tissue of interest (usually, gray matter) at field at which
         `bold_fname` image was collected.
-    n_dummies : int, optional
-        Number of dummy scans (time points) to discard at start of 4D image.
+    n_to_drop : int, optional
+        Number of frames (time points) to discard at start of 4D image.
 
     Returns
     -------
@@ -228,7 +220,7 @@ def analyze_4d(vol_times, exp_design, bold_fname, t1_constant, n_dummies=0):
         Boolean mask with True for voxels included in the analysis.
     """
     img = nib.load(bold_fname)
-    data = img.get_data()[..., n_dummies:]
+    data = img.get_data()[..., n_to_drop:]
     mean_data = np.mean(data, axis=-1)
     mask = compute_mask(mean_data)
     Y = data[mask].T
