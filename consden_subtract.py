@@ -21,7 +21,13 @@ for dirpath, dirnames, filenames in os.walk(root_path):
         continue
     n_img = nib.load(pjoin(dirpath, b_n_fpart))
     e_img = nib.load(pjoin(dirpath, ffn('b_e.nii')))
-    diff_vol = n_img.get_data()[..., 0] - e_img.get_data()[..., 0]
+    n_0 = n_img.get_data()[..., 0]
+    e_0 = e_img.get_data()[..., 0]
+    diff_vol = n_0 - e_0
+    nib.save(nib.Nifti1Image(n_0, n_img.affine, n_img.header),
+             pjoin(dirpath, ffn('n_0.nii')))
+    nib.save(nib.Nifti1Image(e_0, n_img.affine, n_img.header),
+             pjoin(dirpath, ffn('e_0.nii')))
     nib.save(nib.Nifti1Image(diff_vol, n_img.affine, n_img.header),
              pjoin(dirpath, ffn('task_diff.nii')))
     mask = diff_vol == 0
