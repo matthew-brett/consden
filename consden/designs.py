@@ -3,14 +3,12 @@
 import numpy as np
 import numpy.linalg as npl
 
-from six import string_types
-
 import nibabel as nib
 
 import regreg.api as rr
 
 from nipy.labs.mask import compute_mask
-from nipy.modalities.fmri.design import block_design, stack_designs
+from nipy.modalities.fmri.design import stack_designs
 
 from .nutils import (drop_colin, demean_cols, delta_basis, step_basis,
                      t1_basis, dct_ii_basis)
@@ -128,7 +126,7 @@ def get_vol_times(img, n_dummies=0, n_removed=0, TR=None):
         String giving image filename or nibabel image object with attributes
         ``shape`` and ``header``.
     n_dummies : int, optional
-        Number of dummy scans in volume.  This is the number frames at
+        Number of dummy scans in volume.  This is the number of frames at
         beginning of run which we will discard or have discarded (see
         `n_removed`).
     n_removed : int, optional
@@ -156,6 +154,12 @@ def get_vol_times(img, n_dummies=0, n_removed=0, TR=None):
 
 def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
     """ Create design with given task specification and confounds
+
+    The times given in the ``blk_spec`` inputs in `block_info` are always
+    relative to the first volume recorded.  When we compile the design, we need to
+    sample the design at the times of the volumes we are analyzing (given in
+    `vol_times`).  These may express the fact that we have dropped a number of
+    volumes at the beginning of the run, so that ``vol_times[0]`` is not 0.
 
     Parameters
     ----------
@@ -187,6 +191,42 @@ def compile_design(vol_times, block_infos, extra_cols=None, dct_order=8):
 
 
 def analyze_4d(vol_times, exp_design, bold_fname, t1_constant, n_dummies=0):
+    """ Analyze 4D volume with given experimental design and confounds
+
+    Parameters
+    ----------
+    vol_times : 1D array length N
+        Time at which each volume is sampled, relative to the time of the first
+        volume acquired.
+    exp_design : 2D array shape (T, P)
+        Where T is the number of volumes (== time points), and P is the number
+        of regressors.
+    bold_fname : str
+        Path to 4D image, containing array of shape (I, J, K, T).
+    t1_constant : float
+        T1 value for tissue of interest (usually, gray matter) at field at which
+        `bold_fname` image was collected.
+    n_dummies : int, optional
+        Number of dummy scans (time points) to discard at start of 4D image.
+
+    Returns
+    -------
+    B_n : 4D array
+        Naive fit for experimental design without big noise model, with shape
+        (I, J, K, P) where P is the number of parameters (columns) in
+        `exp_design`.
+    B_e : 4D array
+        Denoised fit for experimental design when model for noise included, with
+        shape (I, J, K, P) where P is the number of parameters (columns) in
+        `exp_design`.
+    B_c : 4D array
+        Denoised fit for noise design when model for experiment included, with
+        shape (I, J, K, C) where C is the number of parameters (columns) in
+        noise design, derived from deltas per scan, step effects, and T1
+        effects.
+    mask : 3D array
+        Boolean mask with True for voxels included in the analysis.
+    """
     img = nib.load(bold_fname)
     data = img.get_data()[..., n_dummies:]
     mean_data = np.mean(data, axis=-1)

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from os.path import (expanduser, split as psplit, join as pjoin, exists)
 
-MULTI = False
+MULTI = True
 
 if MULTI:
     import multiprocessing
@@ -49,6 +49,7 @@ def analyze_model(run_model):
     rp_fname = pjoin(out_path, 'rp_' + func_rp_prefix + froot + '.txt')
     motion_regressors = np.loadtxt(rp_fname)
     func_fname = or_gz(prefix_fname(func_fname, func_prefix))
+    # Acquisition times of each volume that will remain
     vol_times = get_vol_times(func_fname,
                               n_dummies=n_dummies,
                               n_removed=n_removed,
@@ -60,11 +61,14 @@ def analyze_model(run_model):
                               extra_cols=motion_regressors,
                               dct_order=dct_order)
     print('Processing', func_fname)
-    B_n, B_e, B_c, mask  = analyze_4d(vol_times,
-                                      X,
-                                      func_fname,
-                                      t1_constant,
-                                      n_dummies=n_dummies - n_removed)
+    # B_n is naive fit without noise model
+    # B_e is fit for experimental part of design when modeling noise
+    # B_c is fit for noise
+    B_n, B_e, B_c, mask = analyze_4d(vol_times,
+                                     X,
+                                     func_fname,
+                                     t1_constant,
+                                     n_dummies=n_dummies - n_removed)
     nib.save(B_n, pjoin(out_path, func_prefix + 'b_n.nii'))
     nib.save(B_e, pjoin(out_path, func_prefix + 'b_e.nii'))
     nib.save(B_c, pjoin(out_path, func_prefix + 'b_c.nii'))
