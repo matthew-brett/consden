@@ -82,7 +82,6 @@ class Run(object):
         return pjoin(self.path, prefix + 'bold.nii.gz')
 
 
-
 class RunModel(object):
 
     def __init__(self, run, models):

@@ -16,6 +16,7 @@ def ffn(fname):
 
 
 for dirpath, dirnames, filenames in os.walk(root_path):
+    print('In', dirpath)
     b_n_fpart = ffn('b_n.nii')
     if not b_n_fpart in filenames:
         continue

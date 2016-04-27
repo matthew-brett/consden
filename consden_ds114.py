@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from os.path import (expanduser, split as psplit, join as pjoin, exists)
+from os.path import (split as psplit, join as pjoin, exists)
 
 MULTI = True
 
@@ -14,11 +14,11 @@ from nibabel.filename_parser import splitext_addext
 
 from consden.nutils import openfmri2nipy, T1_GRAY_1p5T
 from consden.designs import analyze_4d, get_vol_times, compile_design
-from consden.openfmri import get_subjects
+
+from ds114 import TR, SUBJECTS, gen_models
 
 
 T1_CONSTANT = T1_GRAY_1p5T
-TR = 2.5
 # Number of frames to drop before the analysis.  If dummy scans already
 # dropped, set this to 0, and set FRAME0_START_TIME to reflect frame start
 # time, relative to the design.
@@ -28,8 +28,10 @@ N_TO_DROP = 0
 FRAME0_START_TIME = TR * 4
 DCT_ORDER = 8
 
+MODEL_NO=0
+TASK_NOS=[2]
+
 # Where to find files on the filesystem
-ROOT_PATH = expanduser('~/data/ds114')
 FUNC_PREFIX = 'waf'
 FUNC_RP_PREFIX = 'af'
 
@@ -88,21 +90,9 @@ def analyze_model(run_model):
     print(np.where(np.sum(coefs, axis=1))[0])
 
 
-def gen_models(subjects):
-    for subject in subjects:
-        model = subject.models[0]
-        for run_model in model.run_models:
-            if run_model.task_no != 2:
-                continue
-            yield run_model
-
-
-SUBJECTS = get_subjects(ROOT_PATH)
-
-
 if __name__ == '__main__':
     jobs = []
-    for model in gen_models(SUBJECTS):
+    for model in gen_models(SUBJECTS, TASK_NOS, MODEL_NO):
         if MULTI:
             p = multiprocessing.Process(target=analyze_model, args=(model,))
             jobs.append(p)
