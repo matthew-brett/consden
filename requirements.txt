@@ -1,10 +1,11 @@
-pip>=6.0
-numpy==1.10.2
-Cython==0.23.4
+-f https://nipy.bic.berkeley.edu/manylinux
+pip>=8.1
+numpy==1.11.0
+Cython==0.24
 functools32==3.2.3.post2 ; python_version < '3.3'
-ipython[notebook]==4.0.1
-matplotlib==1.5.0
+ipython[notebook]==4.2.0
+matplotlib==1.5.1
 nibabel==2.0.2
 -e ./regreg
-scipy==0.16.1
+scipy==0.17.0
 nipy==0.4.0
