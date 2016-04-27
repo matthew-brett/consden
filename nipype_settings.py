@@ -2,6 +2,6 @@
 """
 import nipype.interfaces.matlab as nim
 # If you needed to set the default matlab command above
-nim.MatlabCommand.set_default_matlab_cmd('/Applications/MATLAB_R2014a.app/bin/matlab')
+nim.MatlabCommand.set_default_matlab_cmd('matlab-2013b-spm12')
 # If you needed to at the SPM path above
-nim.MatlabCommand.set_default_paths('/Users/mb312/spm')
+# nim.MatlabCommand.set_default_paths('/Users/mb312/spm')

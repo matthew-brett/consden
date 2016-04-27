@@ -12,6 +12,8 @@ import nipype_settings
 
 import nipype.interfaces.spm as spm
 
+from ds114 import ROOT_PATH
+
 # Analysis parameters
 TR = 2.5
 ref_slice = 1  # 1-based indexing
@@ -121,9 +123,10 @@ def get_scans(subj_dir, runs):
     return func_fnames, anat_fname
 
 
-def pre_process(subjects, runs):
+def pre_process(root_path, subjects, runs):
     for subject in subjects:
-        func_fnames, anat_fname = get_scans(subject, runs)
+        subj_dir = pjoin(root_path, subject)
+        func_fnames, anat_fname = get_scans(subj_dir, runs)
         for fname in func_fnames:
             assert exists(fname)
         assert exists(anat_fname)
@@ -144,7 +147,7 @@ SUBJECTS = [
 
 
 def main():
-    pre_process(SUBJECTS, runs=(1, 2))
+    pre_process(ROOT_PATH, SUBJECTS, runs=(1, 2))
 
 
 if __name__ == '__main__':

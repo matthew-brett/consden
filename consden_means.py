@@ -7,7 +7,7 @@ import numpy as np
 
 import nibabel as nib
 
-root_path = expanduser('~/data/ds114')
+from ds114 import ROOT_PATH
 func_prefix = 'waf'
 
 def ffn(fname):
@@ -17,7 +17,7 @@ def ffn(fname):
 
 b_n_imgs = []
 b_e_imgs = []
-for dirpath, dirnames, filenames in os.walk(root_path):
+for dirpath, dirnames, filenames in os.walk(ROOT_PATH):
     b_n_fpart = ffn('b_n.nii')
     b_e_fpart = ffn('b_e.nii')
     if b_n_fpart not in filenames:

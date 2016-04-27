@@ -7,7 +7,8 @@ import numpy as np
 
 import nibabel as nib
 
-root_path = expanduser('~/data/ds114')
+from ds114 import ROOT_PATH
+
 func_prefix = 'waf'
 
 def ffn(fname):
@@ -15,7 +16,7 @@ def ffn(fname):
     return pjoin(path, func_prefix + fpart)
 
 
-for dirpath, dirnames, filenames in os.walk(root_path):
+for dirpath, dirnames, filenames in os.walk(ROOT_PATH):
     print('In', dirpath)
     b_n_fpart = ffn('b_n.nii')
     if not b_n_fpart in filenames:
