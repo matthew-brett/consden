@@ -111,7 +111,7 @@ def models_to_blocks(sub_models):
     return fixed_block, unfixed_block
 
 
-def intra_extra_corr(sub_models):
+def intra_extra_corr(sub_models, mask=None):
     """ Correlation across runs for fixed, unfixed parameter volumes
 
     Parameters
@@ -122,6 +122,9 @@ def intra_extra_corr(sub_models):
         keys "fixed", "unfixed", "mask" containing the fixed parameter volume,
         the unfixed parameter volume, and the mask volume for the corresponding
         subject and run.
+    mask : None or 3D boolean array
+        Mask to apply to volumes before calculation correlation.  If None, use
+        the interection of the masks for the individual runs.
 
     Returns
     -------
@@ -150,9 +153,9 @@ def intra_extra_corr(sub_models):
             unfixeds.append(data['unfixed'])
             fixeds.append(data['fixed'])
             masks.append(data['mask'])
-        mask = masks[0] & masks[1]
-        unfixeds = [n[mask] for n in unfixeds]
-        fixeds = [e[mask] for e in fixeds]
+        run_mask = masks[0] & masks[1] if mask is None else mask
+        unfixeds = [n[run_mask] for n in unfixeds]
+        fixeds = [e[run_mask] for e in fixeds]
         intras[sub_i, 0] = img_cc(*unfixeds)
         intras[sub_i, 1] = img_cc(*fixeds)
         extras[sub_i, 0] = img_cc(unfixeds[0], fixeds[1])
