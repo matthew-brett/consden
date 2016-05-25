@@ -1,3 +1,6 @@
 [submodule "regreg"]
 	path = regreg
 	url = https://github.com/regreg/regreg.git
+[submodule "test-data"]
+	path = test-data
+	url = https://github.com/matthew-brett/consden-params.git

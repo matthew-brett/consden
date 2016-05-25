@@ -98,6 +98,7 @@ def models_to_blocks(sub_models):
     """
     n_subs = len(sub_models)
     unfixed_block = None
+    fixed_block = None
     for sub_i, sub_no in enumerate(sorted(sub_models)):
         for run_i, run_no in enumerate(sub_models[sub_no]):
             data = sub_models[sub_no][run_no]

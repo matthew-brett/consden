@@ -12,8 +12,9 @@ To work on this repo::
 The commands here may well need to be edited to work correctly; I haven't
 tested them recently, and I have done some refactoring since I last ran them.
 
-You'll need the OpenFMRI ds114 dataset unpacked in ``~/data/ds114`` - or
-change the path value in ``ds114/__init__.py``.
+You'll need the OpenFMRI ds114 dataset unpacked in ``./data/ds114`` - or
+change the path value in ``ds114/__init__.py``, or link the location of the
+data directory to ``./data`` at the same level as this README.
 
 Preprocess the data with nipype, by::
 

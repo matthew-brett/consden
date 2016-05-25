@@ -1,0 +1,19 @@
+language: python
+
+global:
+    env:
+        - CONSDEN_TEST=1
+
+python:
+    - 2.7
+    - 3.4
+    - 3.5
+
+before_install:
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+    - pip install nose
+
+script:
+    - nosetests ds114 consden
