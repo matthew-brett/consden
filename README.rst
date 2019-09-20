@@ -23,21 +23,27 @@ detection, see the "Research" section in `this talk
 
 In short, we are going to do the following:
 
-* Set up a design matrix `X_s` ('s' for "standard") to express the design of
+* Set up a design matrix ``X_s`` ('s' for "standard") to express the design of
   the experiment, plus some usual experimental confounds;
 * Make a noise design with Dirac delta and set-function regressors expressing the
   effect of movement at that time point.  Call the matrix containing these
-  columns `X_n` ('n' for "noise).
-* Call the column concatenation of these matrices `X_f` ('f' for "full"). The
+  columns ``X_n`` ('n' for "noise).
+* Call the column concatenation of these matrices ``X_f`` ('f' for "full"). The
   design is now heavily redundant, with many more columns than rows.
 * Use constrained regression to estimate parameters for this design, where we
-  use ordinary least squares for the `X_s` part of the design, and least
-  squares plus constraints on the whole scans (rows) by noise parameters `X_n`
+  use ordinary least squares for the ``X_s`` part of the design, and least
+  squares plus constraints on the whole scans (rows) by noise parameters ``X_n``
   part of the design, in order to force parameters to zero unless there is
   strong evidence for effect across the whole row.
 * Our intent is to allow the regression to remove the effect of outlier scans
-  by keeping some non-zero parameter from `X_n`.
+  by keeping some non-zero parameter from ``X_n``.
 * We need to review these parameters to see if we really are detecting outliers.
+
+****************
+Where we are now
+****************
+
+See the `report_1` notebook in this repository.
 
 ************
 Installation
