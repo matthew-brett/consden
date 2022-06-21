@@ -1,6 +1,6 @@
 -f https://nipy.bic.berkeley.edu/manylinux
 pip>=8.1
-numpy==1.11.0
+numpy==1.22.0
 Cython==0.24
 functools32==3.2.3.post2 ; python_version < '3.3'
 ipython[notebook]==4.2.0
